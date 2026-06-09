@@ -1,9 +1,18 @@
+import os
 import streamlit as st
 import pandas as pd
 
 from config import TAB_NAMES, JLPT_LEVELS, SPEAKER_COLORS, jlpt_badge_html
 from notion_exporter import export_to_notion
 from docx_exporter import export_to_docx
+
+
+def _get_secret(key: str) -> str:
+    try:
+        return st.secrets.get(key, "") or ""
+    except Exception:
+        return os.getenv(key, "")
+
 
 st.set_page_config(
     page_title="J-POP JLPT 학습 도우미",
@@ -14,8 +23,21 @@ st.set_page_config(
 # ── 사이드바 ──────────────────────────────────────────────────────────────────
 
 with st.sidebar:
+    # 관리자 비밀번호 확인
+    _admin_pw = _get_secret("ADMIN_PASSWORD")
+    is_admin = False
+    if _admin_pw:
+        pwd_input = st.text_input("🔑 비밀번호", type="password", placeholder="비밀번호 입력")
+        if pwd_input and pwd_input == _admin_pw:
+            is_admin = True
+            st.success("✅ 자동 입력됨")
+        elif pwd_input:
+            st.error("비밀번호가 틀렸습니다.")
+        st.divider()
+
     st.subheader("⚙️ AI 설정")
-    st.caption("API Key는 이 세션에서만 사용되며 저장되지 않습니다.")
+    if not is_admin:
+        st.caption("API Key는 이 세션에서만 사용되며 저장되지 않습니다.")
 
     provider = st.radio(
         "AI 제공자 선택",
@@ -25,52 +47,65 @@ with st.sidebar:
 
     if provider == "Google Gemini (무료)":
         from gemini_analyzer import analyze_lyrics
-        st.markdown("**Google Gemini** — 무료 (일 1,500회)")
-        st.markdown("[API Key 발급받기](https://aistudio.google.com/app/apikey)")
-        google_key_input = st.text_input(
-            "Google API Key",
-            value=st.session_state.get("google_api_key", ""),
-            type="password",
-            placeholder="AIzaSy...",
-        )
-        if google_key_input:
-            st.session_state["google_api_key"] = google_key_input
-        if not google_key_input:
-            st.warning("API Key를 입력하세요.")
+        if is_admin:
+            st.session_state["google_api_key"] = _get_secret("GOOGLE_API_KEY")
+            st.markdown("**Google Gemini** — 무료 (일 1,500회)")
+        else:
+            st.markdown("**Google Gemini** — 무료 (일 1,500회)")
+            st.markdown("[API Key 발급받기](https://aistudio.google.com/app/apikey)")
+            google_key_input = st.text_input(
+                "Google API Key",
+                value=st.session_state.get("google_api_key", ""),
+                type="password",
+                placeholder="AIzaSy...",
+            )
+            if google_key_input:
+                st.session_state["google_api_key"] = google_key_input
+            if not google_key_input:
+                st.warning("API Key를 입력하세요.")
 
     else:
         from claude_analyzer import analyze_lyrics
-        st.markdown("**Claude** — 유료 (Anthropic)")
-        st.markdown("[API Key 발급받기](https://console.anthropic.com/settings/keys)")
-        claude_key_input = st.text_input(
-            "Anthropic API Key",
-            value=st.session_state.get("claude_api_key", ""),
-            type="password",
-            placeholder="sk-ant-...",
-        )
-        if claude_key_input:
-            st.session_state["claude_api_key"] = claude_key_input
-        if not claude_key_input:
-            st.warning("API Key를 입력하세요.")
+        if is_admin:
+            st.session_state["claude_api_key"] = _get_secret("ANTHROPIC_API_KEY")
+            st.markdown("**Claude** — 유료 (Anthropic)")
+        else:
+            st.markdown("**Claude** — 유료 (Anthropic)")
+            st.markdown("[API Key 발급받기](https://console.anthropic.com/settings/keys)")
+            claude_key_input = st.text_input(
+                "Anthropic API Key",
+                value=st.session_state.get("claude_api_key", ""),
+                type="password",
+                placeholder="sk-ant-...",
+            )
+            if claude_key_input:
+                st.session_state["claude_api_key"] = claude_key_input
+            if not claude_key_input:
+                st.warning("API Key를 입력하세요.")
 
     st.divider()
     with st.expander("🗒️ Notion 설정 (선택)"):
-        st.markdown("[Notion Integration 만들기](https://www.notion.so/my-integrations)")
-        notion_key_input = st.text_input(
-            "Notion API Key",
-            value=st.session_state.get("notion_api_key", ""),
-            type="password",
-            placeholder="secret_...",
-        )
-        notion_page_input = st.text_input(
-            "Notion 페이지 ID",
-            value=st.session_state.get("notion_page_id", ""),
-            placeholder="페이지 ID 붙여넣기",
-        )
-        if notion_key_input:
-            st.session_state["notion_api_key"] = notion_key_input
-        if notion_page_input:
-            st.session_state["notion_page_id"] = notion_page_input
+        if is_admin:
+            st.session_state["notion_api_key"] = _get_secret("NOTION_API_KEY")
+            st.session_state["notion_page_id"] = _get_secret("NOTION_PARENT_PAGE_ID")
+            st.info("Notion 설정 자동 입력됨")
+        else:
+            st.markdown("[Notion Integration 만들기](https://www.notion.so/my-integrations)")
+            notion_key_input = st.text_input(
+                "Notion API Key",
+                value=st.session_state.get("notion_api_key", ""),
+                type="password",
+                placeholder="secret_...",
+            )
+            notion_page_input = st.text_input(
+                "Notion 페이지 ID",
+                value=st.session_state.get("notion_page_id", ""),
+                placeholder="페이지 ID 붙여넣기",
+            )
+            if notion_key_input:
+                st.session_state["notion_api_key"] = notion_key_input
+            if notion_page_input:
+                st.session_state["notion_page_id"] = notion_page_input
 
 st.title("🎵 J-POP JLPT 학습 도우미")
 st.caption("J-POP 가사로 JLPT 학습 자료를 자동 생성합니다.")
