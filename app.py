@@ -89,6 +89,27 @@ with st.sidebar:
         if not claude_key_input:
             st.warning("API Key를 입력하세요.")
 
+    st.divider()
+    st.subheader("🗒️ Notion 설정")
+    saved_notion_key = os.getenv("NOTION_API_KEY", "")
+    saved_notion_page = os.getenv("NOTION_PARENT_PAGE_ID", "")
+
+    notion_key_input = st.text_input(
+        "Notion API Key",
+        value=st.session_state.get("notion_api_key", saved_notion_key),
+        type="password",
+        placeholder="secret_...",
+    )
+    notion_page_input = st.text_input(
+        "Notion 페이지 ID",
+        value=st.session_state.get("notion_page_id", saved_notion_page),
+        placeholder="페이지 ID 붙여넣기",
+    )
+    if notion_key_input:
+        st.session_state["notion_api_key"] = notion_key_input
+    if notion_page_input:
+        st.session_state["notion_page_id"] = notion_page_input
+
 st.title("🎵 J-POP JLPT 학습 도우미")
 st.caption("J-POP 가사로 JLPT 학습 자료를 자동 생성합니다.")
 
@@ -371,18 +392,20 @@ exp_col1, exp_col2 = st.columns(2)
 
 with exp_col1:
     st.markdown("**🗒️ Notion으로 내보내기**")
-    if is_notion_configured():
+    runtime_notion_key = st.session_state.get("notion_api_key", "")
+    runtime_notion_page = st.session_state.get("notion_page_id", "")
+    if runtime_notion_key and runtime_notion_page:
         if st.button("Notion 페이지 생성하기", use_container_width=True):
             page_title = f"{song_title_display} - {artist_display}"
             with st.spinner("Notion 페이지를 생성하고 있습니다..."):
                 try:
-                    url = export_to_notion(analysis, page_title)
+                    url = export_to_notion(analysis, page_title, api_key=runtime_notion_key, parent_id=runtime_notion_page)
                     st.success("✅ Notion 페이지 생성 완료!")
                     st.markdown(f"🔗 [페이지 열기]({url})")
                 except Exception as e:
                     st.error(f"❌ Notion 내보내기 오류: {e}")
     else:
-        st.warning("⚠️ NOTION_API_KEY 또는 NOTION_PARENT_PAGE_ID가 .env에 설정되지 않았습니다.")
+        st.warning("⚠️ 사이드바에서 Notion API Key와 페이지 ID를 입력하세요.")
 
 with exp_col2:
     st.markdown("**📄 Word 파일 다운로드** (Google Docs 업로드용)")

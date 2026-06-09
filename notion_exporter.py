@@ -226,8 +226,9 @@ def _build_conversation_blocks(conversation_practice: list[dict]) -> list[dict]:
     return blocks
 
 
-def export_to_notion(analysis: dict, page_title: str) -> str:
-    api_key, parent_id = get_notion_config()
+def export_to_notion(analysis: dict, page_title: str, api_key: str = None, parent_id: str = None) -> str:
+    if not api_key or not parent_id:
+        api_key, parent_id = get_notion_config()
     notion = Client(auth=api_key)
 
     song_info = analysis.get("song_info", {})
