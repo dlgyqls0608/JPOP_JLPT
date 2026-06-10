@@ -1,4 +1,5 @@
 import json
+from json_repair import repair_json
 from google import genai
 from google.genai import types
 from config import GEMINI_MODEL, get_google_key
@@ -52,5 +53,8 @@ def analyze_lyrics(song_title: str, artist: str, lyrics: str, api_key: str = Non
 
     try:
         return json.loads(response.text)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Gemini 응답 파싱 오류: {e}")
+    except json.JSONDecodeError:
+        try:
+            return json.loads(repair_json(response.text))
+        except Exception as e:
+            raise ValueError(f"Gemini 응답 파싱 오류: {e}")
