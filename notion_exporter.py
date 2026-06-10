@@ -90,7 +90,18 @@ def _append_in_batches(notion: Client, block_id: str, children: list[dict]) -> N
         )
 
 
-def _build_lyrics_table(lines: list[dict]) -> dict:
+def _split_tables(rows: list[dict], col_count: int) -> list[dict]:
+    """100행 초과 시 테이블을 분할해 반환."""
+    header = rows[0]
+    data = rows[1:]
+    chunk_size = NOTION_BATCH_SIZE - 1
+    result = []
+    for i in range(0, max(1, len(data)), chunk_size):
+        result.append(_table([header] + data[i:i + chunk_size], col_count=col_count))
+    return result
+
+
+def _build_lyrics_table(lines: list[dict]) -> list[dict]:
     header_row = _table_row([
         _cell("📄 일본어 원문", "gray"),
         _cell("🔤 한국어 음차", "gray"),
@@ -106,10 +117,10 @@ def _build_lyrics_table(lines: list[dict]) -> dict:
                 _cell(line.get("korean_phonetic", "")),
                 _cell(line.get("korean_translation", "")),
             ]))
-    return _table(rows, col_count=3)
+    return _split_tables(rows, col_count=3)
 
 
-def _build_vocabulary_table(vocabulary: list[dict]) -> dict:
+def _build_vocabulary_table(vocabulary: list[dict]) -> list[dict]:
     header_row = _table_row([
         _cell("단어", "gray"),
         _cell("읽기", "gray"),
@@ -143,10 +154,10 @@ def _build_vocabulary_table(vocabulary: list[dict]) -> dict:
             _colored_cell(level, notion_color),
             _cell(extra),
         ]))
-    return _table(rows, col_count=6)
+    return _split_tables(rows, col_count=6)
 
 
-def _build_grammar_table(grammar_points: list[dict]) -> dict:
+def _build_grammar_table(grammar_points: list[dict]) -> list[dict]:
     header_row = _table_row([
         _cell("패턴", "gray"),
         _cell("한국어 음차", "gray"),
@@ -177,10 +188,10 @@ def _build_grammar_table(grammar_points: list[dict]) -> dict:
             _colored_cell(level, notion_color),
             _cell(extra),
         ]))
-    return _table(rows, col_count=6)
+    return _split_tables(rows, col_count=6)
 
 
-def _build_kanji_table(kanji_list: list[dict]) -> dict:
+def _build_kanji_table(kanji_list: list[dict]) -> list[dict]:
     header_row = _table_row([
         _cell("한자", "gray"),
         _cell("음독(音読み)", "gray"),
@@ -205,7 +216,7 @@ def _build_kanji_table(kanji_list: list[dict]) -> dict:
             _cell(meaning_extra),
             _colored_cell(f"{level} {star}".strip(), notion_color),
         ]))
-    return _table(rows, col_count=5)
+    return _split_tables(rows, col_count=5)
 
 
 def _build_conversation_blocks(conversation_practice: list[dict]) -> list[dict]:
@@ -261,13 +272,13 @@ def export_to_notion(analysis: dict, page_title: str, api_key: str = None, paren
         _heading1("🎵 노래 정보"),
         _table(info_rows, col_count=2),
         _heading1("📖 전체 가사 — 원문·음차·해석"),
-        _build_lyrics_table(analysis.get("lines", [])),
+        *_build_lyrics_table(analysis.get("lines", [])),
         _heading1("📚 단어장"),
-        _build_vocabulary_table(analysis.get("vocabulary", [])),
+        *_build_vocabulary_table(analysis.get("vocabulary", [])),
         _heading1("📐 문법정리"),
-        _build_grammar_table(analysis.get("grammar_points", [])),
+        *_build_grammar_table(analysis.get("grammar_points", [])),
         _heading1("🈶 한자 목록"),
-        _build_kanji_table(analysis.get("kanji_list", [])),
+        *_build_kanji_table(analysis.get("kanji_list", [])),
         _heading1("💬 간단 회화 실습"),
         *_build_conversation_blocks(analysis.get("conversation_practice", [])),
         _heading1("📊 JLPT 분포"),
