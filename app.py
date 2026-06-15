@@ -227,6 +227,11 @@ for k in kanji_data:
         _deduped.append(k)
 kanji_data = _deduped
 
+# Notion / docx 내보내기도 동일한 정제 데이터를 사용하도록 analysis 갱신
+analysis["vocabulary"] = vocab_data
+analysis["grammar_points"] = grammar_data
+analysis["kanji_list"] = kanji_data
+
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("📄 가사 줄 수", len([l for l in lines_data if not l.get("is_section_break")]))
 col2.metric("📚 단어 수", len(vocab_data))
