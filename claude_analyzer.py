@@ -182,7 +182,7 @@ def analyze_lyrics(song_title: str, artist: str, lyrics: str, api_key: str = Non
 
     response = client.messages.create(
         model=CLAUDE_MODEL,
-        max_tokens=8192,
+        max_tokens=16384,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_message}],
         tools=[TOOL_DEF],

@@ -7,6 +7,31 @@ from config import TAB_NAMES, JLPT_LEVELS, SPEAKER_COLORS, jlpt_badge_html
 from notion_exporter import export_to_notion
 from docx_exporter import export_to_docx
 
+# 단어장 필터: 문법 패턴으로 판별되는 항목을 제거하기 위한 상수
+_GRAMMAR_MARKERS = ('〜', '～', '~')
+_PARTICLES = {
+    'は', 'が', 'を', 'に', 'で', 'と', 'も', 'の', 'へ', 'から',
+    'まで', 'より', 'や', 'か', 'ね', 'よ', 'な', 'わ', 'ぞ', 'ぜ',
+    'て', 'って', 'けど', 'し', 'ので', 'のに', 'たり',
+}
+
+
+def _deduplicate(lst: list, key: str) -> list:
+    seen: set = set()
+    result = []
+    for item in lst:
+        k = item.get(key, "")
+        if k and k not in seen:
+            seen.add(k)
+            result.append(item)
+    return result
+
+
+@st.cache_data(show_spinner=False)
+def _cached_docx(analysis_json: str, title: str) -> bytes:
+    import json as _json
+    return export_to_docx(_json.loads(analysis_json), title)
+
 
 def _get_secret(key: str) -> str:
     try:
@@ -133,6 +158,16 @@ lyrics = st.text_area(
     height=300,
     placeholder="일본어 가사를 여기에 붙여넣으세요.",
 )
+
+_char_count = len(lyrics)
+if _char_count > 0:
+    if _char_count > 6000:
+        st.warning(f"⚠️ 가사가 {_char_count:,}자입니다. 매우 길면 분석이 잘리거나 오류가 날 수 있습니다. 1곡씩 분석을 권장합니다.")
+    elif _char_count > 3000:
+        st.caption(f"📝 {_char_count:,}자 입력됨 (길이가 다소 깁니다)")
+    else:
+        st.caption(f"📝 {_char_count:,}자 입력됨")
+
 submitted = st.button("🔍 분석하기", use_container_width=True)
 
 
@@ -188,11 +223,7 @@ vocab_data = analysis.get("vocabulary", [])
 grammar_data = analysis.get("grammar_points", [])
 kanji_data = analysis.get("kanji_list", [])
 
-# ── 단어장: 문법 패턴 제거 (AI가 누락 기재한 경우 안전망) ──────────────────
-_GRAMMAR_MARKERS = ('〜', '～', '~')
-_PARTICLES = {'は', 'が', 'を', 'に', 'で', 'と', 'も', 'の', 'へ', 'から',
-              'まで', 'より', 'や', 'か', 'ね', 'よ', 'な', 'わ', 'ぞ', 'ぜ',
-              'て', 'って', 'けど', 'が', 'し', 'ので', 'のに', 'たり'}
+# ── 단어장: 문법 패턴 안전망 필터 ────────────────────────────────────────────
 vocab_data = [
     v for v in vocab_data
     if not any(v.get("word", "").startswith(m) for m in _GRAMMAR_MARKERS)
@@ -200,32 +231,9 @@ vocab_data = [
 ]
 
 # ── 중복 제거: 단어 / 문법 / 한자 ────────────────────────────────────────────
-_seen: set = set()
-_deduped = []
-for v in vocab_data:
-    key = v.get("word", "")
-    if key and key not in _seen:
-        _seen.add(key)
-        _deduped.append(v)
-vocab_data = _deduped
-
-_seen = set()
-_deduped = []
-for g in grammar_data:
-    key = g.get("pattern", "")
-    if key and key not in _seen:
-        _seen.add(key)
-        _deduped.append(g)
-grammar_data = _deduped
-
-_seen = set()
-_deduped = []
-for k in kanji_data:
-    key = k.get("kanji", "")
-    if key and key not in _seen:
-        _seen.add(key)
-        _deduped.append(k)
-kanji_data = _deduped
+vocab_data = _deduplicate(vocab_data, "word")
+grammar_data = _deduplicate(grammar_data, "pattern")
+kanji_data = _deduplicate(kanji_data, "kanji")
 
 # Notion / docx 내보내기도 동일한 정제 데이터를 사용하도록 analysis 갱신
 analysis["vocabulary"] = vocab_data
@@ -278,8 +286,7 @@ with tabs[1]:
 
     filtered_vocab = vocab_data
     if level_filter != "전체":
-        lvl = "unknown" if level_filter == "미분류" else level_filter
-        filtered_vocab = [v for v in filtered_vocab if v.get("jlpt_level") == lvl]
+        filtered_vocab = [v for v in filtered_vocab if v.get("jlpt_level") == level_filter]
     if search_word.strip():
         q = search_word.strip().lower()
         filtered_vocab = [
@@ -460,7 +467,9 @@ with exp_col1:
 with exp_col2:
     st.markdown("**📄 Word 파일 다운로드** (Google Docs 업로드용)")
     try:
-        docx_bytes = export_to_docx(analysis, song_title_display)
+        import json as _json
+        _analysis_json = _json.dumps(analysis, ensure_ascii=False, sort_keys=True)
+        docx_bytes = _cached_docx(_analysis_json, song_title_display)
         safe_title = "".join(c for c in song_title_display if c.isalnum() or c in " _-")
         st.download_button(
             label=".docx 다운로드",

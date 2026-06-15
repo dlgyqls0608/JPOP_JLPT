@@ -52,10 +52,14 @@ def analyze_lyrics(song_title: str, artist: str, lyrics: str, api_key: str = Non
         ),
     )
 
+    raw = response.text
+    if not raw or not raw.strip():
+        raise ValueError("Gemini 응답이 비어 있습니다. 가사가 너무 길거나 API 할당량을 초과했을 수 있습니다.")
+
     try:
-        return json.loads(response.text)
+        return json.loads(raw)
     except json.JSONDecodeError:
         try:
-            return json.loads(repair_json(response.text))
+            return json.loads(repair_json(raw))
         except Exception as e:
             raise ValueError(f"Gemini 응답 파싱 오류: {e}")

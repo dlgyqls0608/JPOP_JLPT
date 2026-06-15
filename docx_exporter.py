@@ -21,14 +21,22 @@ def _set_cell_bg(cell, hex_color: str) -> None:
 def _set_run_font(run, font_name: str = WORD_FONT, size_pt: int = 10) -> None:
     run.font.name = font_name
     run.font.size = Pt(size_pt)
-    run._element.rPr.rFonts.set(qn("w:eastAsia"), font_name)
+    try:
+        rPr = run._element.get_or_add_rPr()
+        rPr.rFonts.set(qn("w:eastAsia"), font_name)
+    except Exception:
+        pass
 
 
 def _add_heading(doc: Document, text: str, level: int = 1) -> None:
     p = doc.add_heading(text, level=level)
     for run in p.runs:
         run.font.name = WORD_FONT
-        run._element.rPr.rFonts.set(qn("w:eastAsia"), WORD_FONT)
+        try:
+            rPr = run._element.get_or_add_rPr()
+            rPr.rFonts.set(qn("w:eastAsia"), WORD_FONT)
+        except Exception:
+            pass
 
 
 def _add_table_with_headers(doc: Document, headers: list[str], col_widths_cm: list[float]) -> object:
@@ -182,7 +190,11 @@ def _build_conversation_section(doc: Document, conversation_practice: list[dict]
         p = doc.add_heading(f"📍 상황 {i}: {practice.get('situation', '')}", level=3)
         for run in p.runs:
             run.font.name = WORD_FONT
-            run._element.rPr.rFonts.set(qn("w:eastAsia"), WORD_FONT)
+            try:
+                rPr = run._element.get_or_add_rPr()
+                rPr.rFonts.set(qn("w:eastAsia"), WORD_FONT)
+            except Exception:
+                pass
 
         for turn in practice.get("dialogue", []):
             speaker = turn.get("speaker", "A")
@@ -208,7 +220,8 @@ def export_to_docx(analysis: dict, song_title: str) -> bytes:
             if style.font:
                 style.font.name = WORD_FONT
                 try:
-                    style.element.rPr.rFonts.set(qn("w:eastAsia"), WORD_FONT)
+                    rPr = style.element.get_or_add_rPr()
+                    rPr.rFonts.set(qn("w:eastAsia"), WORD_FONT)
                 except Exception:
                     pass
         except AttributeError:
