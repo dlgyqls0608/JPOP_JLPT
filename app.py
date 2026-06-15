@@ -1,4 +1,5 @@
 import os
+import urllib.parse
 import streamlit as st
 import pandas as pd
 
@@ -113,18 +114,26 @@ st.caption("J-POP 가사로 JLPT 학습 자료를 자동 생성합니다.")
 
 # ── 입력 폼 ──────────────────────────────────────────────────────────────────
 
-with st.form("analysis_form"):
-    col1, col2 = st.columns(2)
-    with col1:
-        song_title = st.text_input("곡명 *", placeholder="예) 紅蓮華")
-    with col2:
-        artist = st.text_input("가수 *", placeholder="예) LiSA")
-    lyrics = st.text_area(
-        "가사 붙여넣기 *",
-        height=300,
-        placeholder="일본어 가사를 여기에 붙여넣으세요.",
-    )
-    submitted = st.form_submit_button("🔍 분석하기", use_container_width=True)
+col1, col2 = st.columns(2)
+with col1:
+    song_title = st.text_input("곡명 *", placeholder="예) 紅蓮華")
+with col2:
+    artist = st.text_input("가수 *", placeholder="예) LiSA")
+
+# 가사 검색 링크 (곡명 또는 가수 입력 시 동적 생성)
+if song_title.strip() or artist.strip():
+    query = urllib.parse.quote(f"{song_title.strip()} {artist.strip()}".strip())
+    search_url = f"https://www.uta-net.com/search/?Kword={query}&Gname=0"
+    st.markdown(f'🎵 **[uta-net.com에서 가사 검색하기]({search_url})**  ← 가사 복사 후 아래에 붙여넣기')
+else:
+    st.caption("🎵 곡명/가수를 입력하면 uta-net.com 가사 검색 링크가 생성됩니다.")
+
+lyrics = st.text_area(
+    "가사 붙여넣기 *",
+    height=300,
+    placeholder="일본어 가사를 여기에 붙여넣으세요.",
+)
+submitted = st.button("🔍 분석하기", use_container_width=True)
 
 
 # ── 분석 실행 ────────────────────────────────────────────────────────────────
@@ -178,6 +187,45 @@ lines_data = analysis.get("lines", [])
 vocab_data = analysis.get("vocabulary", [])
 grammar_data = analysis.get("grammar_points", [])
 kanji_data = analysis.get("kanji_list", [])
+
+# ── 단어장: 문법 패턴 제거 (AI가 누락 기재한 경우 안전망) ──────────────────
+_GRAMMAR_MARKERS = ('〜', '～', '~')
+_PARTICLES = {'は', 'が', 'を', 'に', 'で', 'と', 'も', 'の', 'へ', 'から',
+              'まで', 'より', 'や', 'か', 'ね', 'よ', 'な', 'わ', 'ぞ', 'ぜ',
+              'て', 'って', 'けど', 'が', 'し', 'ので', 'のに', 'たり'}
+vocab_data = [
+    v for v in vocab_data
+    if not any(v.get("word", "").startswith(m) for m in _GRAMMAR_MARKERS)
+    and v.get("word", "") not in _PARTICLES
+]
+
+# ── 중복 제거: 단어 / 문법 / 한자 ────────────────────────────────────────────
+_seen: set = set()
+_deduped = []
+for v in vocab_data:
+    key = v.get("word", "")
+    if key and key not in _seen:
+        _seen.add(key)
+        _deduped.append(v)
+vocab_data = _deduped
+
+_seen = set()
+_deduped = []
+for g in grammar_data:
+    key = g.get("pattern", "")
+    if key and key not in _seen:
+        _seen.add(key)
+        _deduped.append(g)
+grammar_data = _deduped
+
+_seen = set()
+_deduped = []
+for k in kanji_data:
+    key = k.get("kanji", "")
+    if key and key not in _seen:
+        _seen.add(key)
+        _deduped.append(k)
+kanji_data = _deduped
 
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("📄 가사 줄 수", len([l for l in lines_data if not l.get("is_section_break")]))
