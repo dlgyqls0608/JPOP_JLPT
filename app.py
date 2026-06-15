@@ -3,7 +3,7 @@ import urllib.parse
 import streamlit as st
 import pandas as pd
 
-from config import TAB_NAMES, JLPT_LEVELS, SPEAKER_COLORS, jlpt_badge_html
+from config import TAB_NAMES, JLPT_LEVELS, SPEAKER_COLORS
 from notion_exporter import export_to_notion
 from docx_exporter import export_to_docx
 
@@ -298,60 +298,86 @@ with tabs[1]:
 
     st.caption(f"총 {len(filtered_vocab)}개")
 
-    for v in filtered_vocab:
-        level = v.get("jlpt_level", "unknown")
-        badge = jlpt_badge_html(level)
-        poly = " ⚡다의어" if v.get("is_polysemous") else ""
-        label = f"{v.get('word', '')} [{v.get('reading', '')}] — {v.get('meaning_korean', '')}{poly}"
-
-        with st.expander(label):
-            c1, c2, c3 = st.columns([2, 2, 3])
-            with c1:
-                st.markdown(f"**한국어 음차:** {v.get('korean_phonetic', '')}")
-                st.markdown(f"**JLPT:** {badge}", unsafe_allow_html=True)
-            with c2:
-                ex_line = v.get("example_line_number", 0)
-                ex_text = ""
-                if ex_line and ex_line <= len(lines_data):
-                    ex_text = lines_data[ex_line - 1].get("japanese", "")
-                if ex_text:
-                    st.markdown(f"**가사 예문:** _{ex_text}_")
-            with c3:
-                collocations = v.get("collocations", [])
-                if collocations:
-                    st.markdown(f"**콜로케이션:** {' / '.join(collocations)}")
-            note = v.get("colloquial_note")
+    if filtered_vocab:
+        rows_v = []
+        for v in filtered_vocab:
+            ex_line = v.get("example_line_number", 0)
+            ex_text = ""
+            if ex_line and isinstance(ex_line, int) and ex_line <= len(lines_data):
+                ex_text = lines_data[ex_line - 1].get("japanese", "")
+            meaning = v.get("meaning_korean", "")
+            if v.get("is_polysemous"):
+                meaning += " ⚡"
+            note = v.get("colloquial_note") or ""
             if note:
-                st.warning(f"⚠️ 구어체 주의: {note}")
+                meaning += f"  ⚠️{note}"
+            rows_v.append({
+                "단어": v.get("word", ""),
+                "읽기": v.get("reading", ""),
+                "음차": v.get("korean_phonetic", ""),
+                "뜻": meaning,
+                "JLPT": v.get("jlpt_level", "unknown"),
+                "가사 예문": ex_text,
+                "콜로케이션": " / ".join(v.get("collocations", [])[:3]),
+            })
+        df_vocab = pd.DataFrame(rows_v)
+        st.dataframe(
+            df_vocab,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "단어":      st.column_config.TextColumn(width="small"),
+                "읽기":      st.column_config.TextColumn(width="small"),
+                "음차":      st.column_config.TextColumn(width="small"),
+                "뜻":        st.column_config.TextColumn(width="medium"),
+                "JLPT":     st.column_config.TextColumn(width="small"),
+                "가사 예문": st.column_config.TextColumn(width="large"),
+                "콜로케이션": st.column_config.TextColumn(width="medium"),
+            },
+        )
+    else:
+        st.info("검색 결과가 없습니다.")
 
 
 # ── 탭 3: 문법정리 ───────────────────────────────────────────────────────────
 
 with tabs[2]:
     st.subheader("📐 문법정리")
-    for g in grammar_data:
-        level = g.get("jlpt_level", "unknown")
-        badge = jlpt_badge_html(level)
-        tags = " ".join([f"`[{t}]`" for t in g.get("function_tags", [])])
-        label = f"{g.get('pattern', '')} — {g.get('explanation_korean', '')}"
-
-        with st.expander(label):
-            c1, c2 = st.columns(2)
-            with c1:
-                st.markdown(f"**한국어 음차:** {g.get('pattern_korean_phonetic', '')}")
-                st.markdown(f"**JLPT:** {badge}", unsafe_allow_html=True)
-                if tags:
-                    st.markdown(f"**기능 태그:** {tags}")
-            with c2:
-                ex = g.get("example_japanese")
-                if ex:
-                    st.markdown(f"**예문:** _{ex}_")
-                standard = g.get("standard_form")
-                if standard:
-                    st.info(f"→ 표준형: **{standard}**")
-            confusion = g.get("confusion_note")
-            if confusion:
-                st.warning(f"📌 혼동 주의: {confusion}")
+    if grammar_data:
+        rows_g = []
+        for g in grammar_data:
+            tags = " ".join([f"[{t}]" for t in g.get("function_tags", [])])
+            note_parts = []
+            if g.get("confusion_note"):
+                note_parts.append(f"📌 {g['confusion_note']}")
+            if g.get("standard_form"):
+                note_parts.append(f"→ 표준형: {g['standard_form']}")
+            rows_g.append({
+                "패턴":      g.get("pattern", ""),
+                "음차":      g.get("pattern_korean_phonetic", ""),
+                "설명":      g.get("explanation_korean", ""),
+                "JLPT":     g.get("jlpt_level", "unknown"),
+                "태그":      tags,
+                "예문":      g.get("example_japanese", ""),
+                "주의":      " | ".join(note_parts),
+            })
+        df_grammar = pd.DataFrame(rows_g)
+        st.dataframe(
+            df_grammar,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "패턴":  st.column_config.TextColumn(width="small"),
+                "음차":  st.column_config.TextColumn(width="small"),
+                "설명":  st.column_config.TextColumn(width="large"),
+                "JLPT": st.column_config.TextColumn(width="small"),
+                "태그":  st.column_config.TextColumn(width="small"),
+                "예문":  st.column_config.TextColumn(width="large"),
+                "주의":  st.column_config.TextColumn(width="medium"),
+            },
+        )
+    else:
+        st.info("문법 데이터가 없습니다.")
 
 
 # ── 탭 4: 한자 목록 ──────────────────────────────────────────────────────────
@@ -362,7 +388,6 @@ with tabs[3]:
         rows_k = []
         for k in kanji_data:
             level = k.get("jlpt_level", "N5")
-            badge_html = jlpt_badge_html(level)
             star = "★" if k.get("is_key_kanji") else ""
             example_words = " / ".join(k.get("example_words", [])[:3])
             rows_k.append({
