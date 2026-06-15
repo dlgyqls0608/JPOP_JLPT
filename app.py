@@ -145,13 +145,10 @@ with col1:
 with col2:
     artist = st.text_input("가수 *", placeholder="예) LiSA")
 
-# 가사 검색 링크 (곡명 또는 가수 입력 시 동적 생성)
-if song_title.strip() or artist.strip():
-    query = urllib.parse.quote(f"{song_title.strip()} {artist.strip()}".strip())
-    search_url = f"https://www.uta-net.com/search/?Kword={query}&Gname=0"
-    st.markdown(f'🎵 **[uta-net.com에서 가사 검색하기]({search_url})**  ← 가사 복사 후 아래에 붙여넣기')
-else:
-    st.caption("🎵 곡명/가수를 입력하면 uta-net.com 가사 검색 링크가 생성됩니다.")
+# 가사 검색 링크 (항상 표시, 곡명/가수 입력 시 검색어 반영)
+query = urllib.parse.quote(f"{song_title.strip()} {artist.strip()}".strip())
+search_url = f"https://www.uta-net.com/search/?Kword={query}&Gname=0" if query else "https://www.uta-net.com/search/"
+st.markdown(f'🎵 **[uta-net.com에서 가사 검색하기]({search_url})**  ← 가사 복사 후 아래에 붙여넣기')
 
 lyrics = st.text_area(
     "가사 붙여넣기 *",
