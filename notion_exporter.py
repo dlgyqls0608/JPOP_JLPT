@@ -218,9 +218,10 @@ def _build_grammar_table(grammar_points: list[dict]) -> list[dict]:
 def _build_kanji_table(kanji_list: list[dict]) -> list[dict]:
     header_row = _table_row([
         _cell("한자", "gray"),
+        _cell("한국식 음", "gray"),
         _cell("음독(音読み)", "gray"),
         _cell("훈독(訓読み)", "gray"),
-        _cell("뜻 / 빈출어", "gray"),
+        _cell("뜻 / 예시 단어", "gray"),
         _cell("JLPT / ★", "gray"),
     ])
     rows = [header_row]
@@ -231,10 +232,11 @@ def _build_kanji_table(kanji_list: list[dict]) -> list[dict]:
         example_words = " / ".join(k.get("example_words", [])[:3])
         meaning_extra = k.get("meaning_korean", "")
         if example_words:
-            meaning_extra += f"\n빈출어: {example_words}"
+            meaning_extra += f"\n예시: {example_words}"
 
         rows.append(_table_row([
             _colored_cell(k.get("kanji", ""), notion_color),
+            _cell(k.get("korean_reading", "")),
             _cell(k.get("reading_on", "")),
             _cell(k.get("reading_kun", "")),
             _cell(meaning_extra),

@@ -389,10 +389,11 @@ with tabs[3]:
             example_words = " / ".join(k.get("example_words", [])[:3])
             rows_k.append({
                 "한자": k.get("kanji", ""),
+                "한국식 음": k.get("korean_reading", ""),
                 "음독(音読み)": k.get("reading_on", ""),
                 "훈독(訓読み)": k.get("reading_kun", ""),
                 "뜻": k.get("meaning_korean", ""),
-                "빈출어": example_words,
+                "예시 단어": example_words,
                 "JLPT": level,
                 "★": star,
             })

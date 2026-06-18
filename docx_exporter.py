@@ -161,8 +161,8 @@ def _build_grammar_section(doc: Document, grammar_points: list[dict]) -> None:
 
 def _build_kanji_section(doc: Document, kanji_list: list[dict]) -> None:
     _add_heading(doc, "🈶 한자 목록 (JLPT N1~N5)", level=2)
-    headers = ["한자", "음독(音読み)", "훈독(訓読み)", "뜻 / 빈출어", "JLPT / ★"]
-    col_widths = [2.0, 3.5, 3.5, 5.0, 2.5]
+    headers = ["한자", "한국식 음", "음독(音読み)", "훈독(訓読み)", "뜻 / 예시 단어", "JLPT / ★"]
+    col_widths = [2.0, 2.5, 3.0, 3.0, 5.0, 2.5]
     table = _add_table_with_headers(doc, headers, col_widths)
 
     for k in kanji_list:
@@ -172,16 +172,17 @@ def _build_kanji_section(doc: Document, kanji_list: list[dict]) -> None:
         example_words = " / ".join(k.get("example_words", [])[:3])
         meaning_extra = k.get("meaning_korean", "")
         if example_words:
-            meaning_extra += f"\n빈출어: {example_words}"
+            meaning_extra += f"\n예시: {example_words}"
 
         row = table.add_row()
         _add_cell_text(row.cells[0], k.get("kanji", ""), bold=True, font_size=14)
         _set_cell_bg(row.cells[0], cell_color)
-        _add_cell_text(row.cells[1], k.get("reading_on", ""))
-        _add_cell_text(row.cells[2], k.get("reading_kun", ""))
-        _add_cell_text(row.cells[3], meaning_extra)
-        _add_cell_text(row.cells[4], f"{level}{star}")
-        _set_cell_bg(row.cells[4], cell_color)
+        _add_cell_text(row.cells[1], k.get("korean_reading", ""))
+        _add_cell_text(row.cells[2], k.get("reading_on", ""))
+        _add_cell_text(row.cells[3], k.get("reading_kun", ""))
+        _add_cell_text(row.cells[4], meaning_extra)
+        _add_cell_text(row.cells[5], f"{level}{star}")
+        _set_cell_bg(row.cells[5], cell_color)
 
 
 def _build_conversation_section(doc: Document, conversation_practice: list[dict]) -> None:
