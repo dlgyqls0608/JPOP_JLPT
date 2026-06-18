@@ -73,6 +73,23 @@ def _table_row(cells: list[list[dict]]) -> dict:
     }
 
 
+_EMPTY_CELL = [{"type": "text", "text": {"content": ""}, "annotations": {"color": "default"}}]
+
+
+def _fix_row_widths(rows: list[dict], col_count: int) -> list[dict]:
+    """모든 table_row의 셀 수를 col_count에 맞게 패딩/트리밍."""
+    fixed = []
+    for row in rows:
+        if row.get("type") == "table_row":
+            cells = list(row["table_row"]["cells"])
+            while len(cells) < col_count:
+                cells.append(_EMPTY_CELL)
+            cells = cells[:col_count]
+            row = {"object": "block", "type": "table_row", "table_row": {"cells": cells}}
+        fixed.append(row)
+    return fixed
+
+
 def _table(rows: list[dict], col_count: int, has_header: bool = True) -> dict:
     return {
         "object": "block",
@@ -81,7 +98,7 @@ def _table(rows: list[dict], col_count: int, has_header: bool = True) -> dict:
             "table_width": col_count,
             "has_column_header": has_header,
             "has_row_header": False,
-            "children": rows,
+            "children": _fix_row_widths(rows, col_count),
         },
     }
 
