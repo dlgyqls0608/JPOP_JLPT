@@ -242,7 +242,7 @@ def _build_kanji_table(kanji_list: list[dict]) -> list[dict]:
             _cell(meaning_extra),
             _colored_cell(f"{level} {star}".strip(), notion_color),
         ]))
-    return _split_tables(rows, col_count=5)
+    return _split_tables(rows, col_count=6)
 
 
 def _build_conversation_blocks(conversation_practice: list[dict]) -> list[dict]:
