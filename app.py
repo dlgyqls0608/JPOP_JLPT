@@ -3,7 +3,7 @@ import urllib.parse
 import streamlit as st
 import pandas as pd
 
-from config import TAB_NAMES, JLPT_LEVELS, SPEAKER_COLORS
+from config import TAB_NAMES, JLPT_LEVELS, JLPT_ORDER, SPEAKER_COLORS
 from notion_exporter import export_to_notion
 from docx_exporter import export_to_docx
 
@@ -287,7 +287,7 @@ with tabs[1]:
     with search_col:
         search_word = st.text_input("🔍 단어 검색", placeholder="단어 검색...")
 
-    filtered_vocab = vocab_data
+    filtered_vocab = sorted(vocab_data, key=lambda v: JLPT_ORDER.get(v.get("jlpt_level", "unknown"), 5))
     if level_filter != "전체":
         filtered_vocab = [v for v in filtered_vocab if v.get("jlpt_level") == level_filter]
     if search_word.strip():
@@ -348,7 +348,7 @@ with tabs[2]:
     st.subheader("📐 문법정리")
     if grammar_data:
         rows_g = []
-        for g in grammar_data:
+        for g in sorted(grammar_data, key=lambda g: JLPT_ORDER.get(g.get("jlpt_level", "unknown"), 5)):
             tags = " ".join([f"[{t}]" for t in g.get("function_tags", [])])
             note_parts = []
             if g.get("confusion_note"):
@@ -389,7 +389,7 @@ with tabs[3]:
     st.subheader("🈶 한자 목록 (JLPT N1~N5 등재 한자)")
     if kanji_data:
         rows_k = []
-        for k in kanji_data:
+        for k in sorted(kanji_data, key=lambda k: JLPT_ORDER.get(k.get("jlpt_level", "unknown"), 5)):
             level = k.get("jlpt_level", "N5")
             star = "★" if k.get("is_key_kanji") else ""
             example_words = " / ".join(k.get("example_words", [])[:3])

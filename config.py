@@ -9,6 +9,7 @@ NOTION_BATCH_SIZE = 90
 WORD_FONT = "Malgun Gothic"
 
 JLPT_LEVELS = ["N5", "N4", "N3", "N2", "N1", "unknown"]
+JLPT_ORDER = {"N5": 0, "N4": 1, "N3": 2, "N2": 3, "N1": 4, "unknown": 5}
 
 JLPT_BADGE_COLORS = {
     "N5":      {"bg": "#AED6F1", "fg": "#FFFFFF", "notion": "blue"},

@@ -5,7 +5,7 @@ from docx.shared import Pt, RGBColor, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
-from config import WORD_FONT, DOCX_CELL_COLORS, SPEAKER_COLORS
+from config import WORD_FONT, DOCX_CELL_COLORS, SPEAKER_COLORS, JLPT_ORDER
 
 
 def _set_cell_bg(cell, hex_color: str) -> None:
@@ -102,7 +102,7 @@ def _build_vocabulary_section(doc: Document, vocabulary: list[dict]) -> None:
     col_widths = [2.5, 3.0, 3.0, 3.5, 1.5, 4.5]
     table = _add_table_with_headers(doc, headers, col_widths)
 
-    for v in vocabulary:
+    for v in sorted(vocabulary, key=lambda v: JLPT_ORDER.get(v.get("jlpt_level", "unknown"), 5)):
         level = v.get("jlpt_level", "unknown")
         cell_color = DOCX_CELL_COLORS.get(level, DOCX_CELL_COLORS["unknown"])
 
@@ -135,7 +135,7 @@ def _build_grammar_section(doc: Document, grammar_points: list[dict]) -> None:
     col_widths = [3.5, 3.5, 2.5, 3.5, 1.5, 4.0]
     table = _add_table_with_headers(doc, headers, col_widths)
 
-    for g in grammar_points:
+    for g in sorted(grammar_points, key=lambda g: JLPT_ORDER.get(g.get("jlpt_level", "unknown"), 5)):
         level = g.get("jlpt_level", "unknown")
         cell_color = DOCX_CELL_COLORS.get(level, DOCX_CELL_COLORS["unknown"])
         tags = " ".join([f"[{t}]" for t in g.get("function_tags", [])])
@@ -165,7 +165,7 @@ def _build_kanji_section(doc: Document, kanji_list: list[dict]) -> None:
     col_widths = [2.0, 2.5, 3.0, 3.0, 5.0, 2.5]
     table = _add_table_with_headers(doc, headers, col_widths)
 
-    for k in kanji_list:
+    for k in sorted(kanji_list, key=lambda k: JLPT_ORDER.get(k.get("jlpt_level", "unknown"), 5)):
         level = k.get("jlpt_level", "N5")
         cell_color = DOCX_CELL_COLORS.get(level, DOCX_CELL_COLORS["unknown"])
         star = " ★" if k.get("is_key_kanji") else ""

@@ -1,5 +1,5 @@
 from notion_client import Client
-from config import get_notion_config, JLPT_BADGE_COLORS, NOTION_BATCH_SIZE
+from config import get_notion_config, JLPT_BADGE_COLORS, NOTION_BATCH_SIZE, JLPT_ORDER
 
 _MAX_RICH_TEXT = 1900  # Notion API 실제 한도 2000자보다 여유 있게
 
@@ -168,7 +168,7 @@ def _build_vocabulary_table(vocabulary: list[dict]) -> list[dict]:
         _cell("가사 예문 / 정보", "gray"),
     ])
     rows = [header_row]
-    for v in vocabulary:
+    for v in sorted(vocabulary, key=lambda v: JLPT_ORDER.get(v.get("jlpt_level", "unknown"), 5)):
         level = v.get("jlpt_level", "unknown")
         notion_color = _notion_color(level)
 
@@ -205,7 +205,7 @@ def _build_grammar_table(grammar_points: list[dict]) -> list[dict]:
         _cell("예문 / 주의", "gray"),
     ])
     rows = [header_row]
-    for g in grammar_points:
+    for g in sorted(grammar_points, key=lambda g: JLPT_ORDER.get(g.get("jlpt_level", "unknown"), 5)):
         level = g.get("jlpt_level", "unknown")
         notion_color = _notion_color(level)
         tags = " ".join([f"[{t}]" for t in g.get("function_tags", [])])
@@ -242,7 +242,7 @@ def _build_kanji_table(kanji_list: list[dict]) -> list[dict]:
         _cell("JLPT / ★", "gray"),
     ])
     rows = [header_row]
-    for k in kanji_list:
+    for k in sorted(kanji_list, key=lambda k: JLPT_ORDER.get(k.get("jlpt_level", "unknown"), 5)):
         level = k.get("jlpt_level", "N5")
         notion_color = _notion_color(level)
         star = "★" if k.get("is_key_kanji") else ""
