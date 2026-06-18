@@ -198,7 +198,13 @@ if submitted:
             st.error(f"❌ 입력 오류: {e}")
             st.stop()
         except Exception as e:
-            st.error(f"❌ API 오류: {e}\n{key_hint}가 올바른지 확인하거나 잠시 후 다시 시도해주세요.")
+            err_str = str(e)
+            if "503" in err_str or "UNAVAILABLE" in err_str or "high demand" in err_str:
+                st.error(f"❌ API 서버 과부하 (503): AI 서버에 일시적으로 요청이 몰렸습니다. 잠시 후 다시 시도해주세요.")
+            elif "429" in err_str or "quota" in err_str.lower() or "rate" in err_str.lower():
+                st.error(f"❌ API 요청 한도 초과 (429): 잠시 후 다시 시도해주세요.")
+            else:
+                st.error(f"❌ API 오류: {e}\n{key_hint}가 올바른지 확인하거나 잠시 후 다시 시도해주세요.")
             st.stop()
 
 
